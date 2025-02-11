@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <style>
+        /* General Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7fa;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            height: 100vh;
+            color: #333;
+        }
+
+        /* Top Bar */
+        #top-bar {
+            background-color: white;
+            height: 50px;
+            border-bottom: 1px solid #000;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding-right: 15px;
+        }
+
+        /* Chat Area */
+        #chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding: 20px;
+            margin-left: 0;
+            margin-right: 20px;
+            overflow-y: auto;
+        }
+
+        .chat-message {
+            padding: 12px;
+            background-color: #fff;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            max-width: fit-content;
+            word-wrap: break-word;
+            margin-top: 10px;
+        }
+
+        .chat-message.user {
+            background-color: #daf8e3;
+            align-self: flex-end;
+            text-align: right;
+            margin-left: auto;
+        }
+
+        .chat-message.bot {
+            background-color: #f1f1f1;
+            align-self: flex-start;
+            text-align: left;
+        }
+
+        /* Input Box */
+        #userInput {
+            width: 60%;
+            padding: 10px;
+            border-radius: 20px;
+            border: 1px solid #ccc;
+            margin-right: 10px;
+            background-color: transparent;
+            box-shadow: none;
+        }
+
+        /* Send Button */
+        #sendButton {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        #sendButton svg {
+            width: 20px;
+            height: 20px;
+            transform: rotate(180deg);
+        }
+
+        /* Positioning Chat Input at Bottom */
+        #chat-container .input-area {
+            display: flex;
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            background-color: transparent;
+            padding: 0;
+            box-shadow: none;
+        }
+
+        /* Transition Effects */
+        #sendButton {
+            transition: background-color 0.3s ease;
+        }
+
+        #sendButton:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Bar -->
+    <div id="top-bar">
+        <div class="icon"></div> <!-- Placeholder Icon -->
+    </div>
+
+    <!-- Chat Container -->
+    <div id="chat-container">
+        <div id="chatBox"></div>
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="Type a message...">
+            <button id="sendButton" onclick="sendMessage()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="22 2 12 12 22 22"></polyline>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Store chat history
+        let currentChatHistory = [];
+
+        async function sendMessage() {
+            const message = document.getElementById("userInput").value;
+            if (!message.trim()) return; // Don't send empty messages
+            const chatBox = document.getElementById("chatBox");
+
+            // Display user message on the right
+            const userMessage = document.createElement('div');
+            userMessage.classList.add('chat-message', 'user');
+            userMessage.innerText = message;
+            chatBox.appendChild(userMessage);
+            document.getElementById("userInput").value = ''; // Clear input field
+            scrollToBottom();
+
+            // Get AI response
+            try {
+                const response = await fetch("http://localhost:5000/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message }),
+                });
+                const data = await response.json();
+
+                // Check if the response contains the 'reply' key
+                const reply = data.reply || "Sorry, something went wrong. Please try again.";  // Fallback message if no reply
+
+                // Display bot response on the left
+                const botMessage = document.createElement('div');
+                botMessage.classList.add('chat-message', 'bot');
+                botMessage.innerText = reply;
+                chatBox.appendChild(botMessage);
+
+                // Add to current chat history
+                currentChatHistory.push({ user: message, bot: reply });
+
+                scrollToBottom();
+            } catch (error) {
+                console.error("Error fetching response:", error);
+                const botMessage = document.createElement('div');
+                botMessage.classList.add('chat-message', 'bot');
+                botMessage.innerText = "Error fetching response. Please try again later.";  // Error message for failed request
+                chatBox.appendChild(botMessage);
+
+                scrollToBottom();
+            }
+        }
+
+        // Function to clear the chat and start a new session
+        function startNewChat() {
+            currentChatHistory = [];
+            document.getElementById("chatBox").innerHTML = ''; // Clear the chat box
+            document.getElementById("userInput").value = ''; // Clear the input field
+            scrollToBottom();
+        }
+
+        // Scroll to the bottom of the chat box
+        function scrollToBottom() {
+            const chatBox = document.getElementById("chatBox");
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
+
+</body>
+</html>
